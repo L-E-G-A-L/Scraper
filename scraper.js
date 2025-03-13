@@ -14,6 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const puppeteer_1 = __importDefault(require("puppeteer"));
 const fs_1 = __importDefault(require("fs"));
+/* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
+const targets = [
+    "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unlocked (Renewed Premium)",
+    "2024 MacBook Pro Laptop with M4 Pro, 14‑core CPU, 20‑core GPU: Built for Apple Intelligence, 16.2-inch Liquid Retina XDR Display, 24GB Unified Memory, 512GB SSD Storage; Space Black",
+    "Apple iPad Pro 2024 (13-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
+    "Apple iPad Pro 2024 (11-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
+];
+/* <-------------------- Code for creating json file and saving scraped data -------------------->*/
 const filePath = "data.json";
 const initializeFile = () => {
     if (!fs_1.default.existsSync(filePath)) {
@@ -21,56 +29,101 @@ const initializeFile = () => {
         console.log("Created data.json file with an empty object");
     }
 };
-initializeFile();
-const targetText = "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unlocked (Renewed Premium)";
-(() => __awaiter(void 0, void 0, void 0, function* () {
-    var userAgent = require("user-agents");
+const writeToFile = (allScrapedData) => {
+    const existingData = fs_1.default.readFileSync(filePath, "utf-8");
+    const parsedData = JSON.parse(existingData);
+    allScrapedData.forEach((scrapedProductData) => {
+        const { product, image, price, time } = scrapedProductData;
+        if (!parsedData[product]) {
+            parsedData[product] = [];
+        }
+        parsedData[product].push({ image, price, time });
+    });
+    fs_1.default.writeFileSync(filePath, JSON.stringify(parsedData, null, 2));
+    console.log("Data appended to", filePath);
+};
+/* <-------------------- Logic for scraping individual product -------------------->*/
+const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function* () {
     const browser = yield puppeteer_1.default.launch({
         headless: false,
         executablePath: "C:/Program Files/Google/Chrome/Application/chrome.exe",
     });
-    const page = yield browser.newPage();
-    yield page.setUserAgent(userAgent.random().toString());
-    yield page.goto("https://amazon.com/", { waitUntil: "load" });
-    // await page.setViewport({width: 1080, height: 1024});
-    yield page.locator('input[type="text"]').fill(targetText);
-    page.keyboard.press("Enter");
-    yield page.waitForNavigation();
-    const listing = yield page.evaluate((targetText) => {
-        const listingURLS = document.querySelectorAll("a");
-        return Array.from(listingURLS)
-            .map((item) => {
-            const h2 = item.querySelector("h2");
-            if ((h2 === null || h2 === void 0 ? void 0 : h2.getAttribute("aria-label")) === targetText) {
-                return item.href;
+    try {
+        const page = yield browser.newPage();
+        yield page.setUserAgent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36");
+        yield page.goto("https://amazon.com/", { waitUntil: "load" });
+        yield page.setViewport({ width: 1920, height: 1080 });
+        yield page.locator('input[type="text"]').fill(targetText);
+        page.keyboard.press("Enter");
+        yield page.waitForNavigation();
+        let productFound = false;
+        let listing;
+        while (!productFound) {
+            listing = yield page.evaluate((targetText) => {
+                const listingURLS = document.querySelectorAll("a");
+                return Array.from(listingURLS)
+                    .map((item) => {
+                    const h2 = item.querySelector("h2");
+                    if ((h2 === null || h2 === void 0 ? void 0 : h2.getAttribute("aria-label")) === targetText) {
+                        return item.href;
+                    }
+                })
+                    .filter(Boolean);
+            }, targetText);
+            if (listing.length > 0) {
+                productFound = true;
+                listing = listing[0];
+                break;
             }
-        })
-            .filter(Boolean);
-    }, targetText);
-    yield page.goto("" + listing[0], { waitUntil: "load" });
-    let listingImage;
-    let listingPrice;
-    try {
-        listingImage = yield page.$eval("img#main-image", (el) => el.getAttribute("src"), { timeout: 5000 });
+            const nextButton = yield page.$("a.s-pagination-next");
+            if (!nextButton) {
+                console.log(`No more pages. Product not found: ${targetText}`);
+                break;
+            }
+            yield nextButton.click();
+            yield page.waitForNavigation({ waitUntil: "load" });
+        }
+        if (!productFound) {
+            return null;
+        }
+        yield page.goto("" + listing, { waitUntil: "load" });
+        let listingImage = "", listingPrice = "";
+        try {
+            listingImage = yield page.$eval("img#main-image", (el) => el.getAttribute("src"), { timeout: 5000 });
+        }
+        catch (error) {
+            try {
+                listingImage = yield page.$eval("img#landingImage", (el) => el.getAttribute("src"), { timeout: 5000 });
+            }
+            catch (error) {
+                console.error("Error extracting the image for ", targetText);
+            }
+        }
+        try {
+            listingPrice = yield page.$eval("span.a-price > span", (el) => el.innerHTML, { timeout: 5000 });
+        }
+        catch (error) {
+            console.error("Error extracting the price for", targetText);
+        }
+        return {
+            product: targetText,
+            image: listingImage,
+            price: listingPrice,
+            time: new Date().toJSON(),
+        };
     }
     catch (error) {
-        console.error("Error extracting the image:", error);
+        console.log("Failed to scrape the data of ", targetText);
     }
-    try {
-        listingPrice = yield page.$eval("span.apexPriceToPay > span", (el) => el.innerHTML, { timeout: 5000 });
+    finally {
+        browser.close();
     }
-    catch (error) {
-        console.error("Error extracting the price:", error);
-    }
-    let data = {
-        image: listingImage,
-        price: listingPrice,
-    };
-    let extractedTime = new Date().toJSON();
-    const existingData = fs_1.default.readFileSync(filePath, "utf-8");
-    const parsedData = JSON.parse(existingData);
-    parsedData[extractedTime] = data;
-    fs_1.default.writeFileSync(filePath, JSON.stringify(parsedData, null, 2));
-    console.log("Data appended to", filePath);
-    browser.close();
-}))();
+});
+/* <-------------------- Logic for concurrency -------------------->*/
+const scrapeAllProducts = (targets) => __awaiter(void 0, void 0, void 0, function* () {
+    const scrapedResults = yield Promise.all(targets.map(scrapeProduct));
+    writeToFile(scrapedResults);
+});
+/* <-------------------- Starts the scraping :) -------------------->*/
+initializeFile();
+scrapeAllProducts(targets);
