@@ -32,5 +32,8 @@ const targetText: string = "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unl
 }, targetText)
 await page.goto(''+listing[0], { waitUntil: 'load' });
 
-// To-Implement: Scrape the image and price
+const listingImage = await page.$eval('img#main-image', el => el.getAttribute('src'), { timeout: 5000 });
+const listingPrice = await page.$eval('span.apexPriceToPay > span', el => el.innerHTML, { timeout: 5000 });
+
+browser.close();
 })();
