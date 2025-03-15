@@ -14,10 +14,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const puppeteer_1 = __importDefault(require("puppeteer"));
 const fs_1 = __importDefault(require("fs"));
+const bottleneck_1 = __importDefault(require("bottleneck"));
+/* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
+const limiter = new bottleneck_1.default({
+    maxConcurrent: 2,
+});
 /* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
 const targets = [
     "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unlocked (Renewed Premium)",
-    "2024 MacBook Pro Laptop with M4 Pro, 14‑core CPU, 20‑core GPU: Built for Apple Intelligence, 16.2-inch Liquid Retina XDR Display, 24GB Unified Memory, 512GB SSD Storage; Space Black",
     "Apple iPad Pro 2024 (13-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
     "Apple iPad Pro 2024 (11-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
 ];
@@ -34,10 +38,11 @@ const writeToFile = (allScrapedData) => {
     const parsedData = JSON.parse(existingData);
     allScrapedData.forEach((scrapedProductData) => {
         const { product, image, price, time } = scrapedProductData;
-        if (!parsedData[product]) {
+        if (!parsedData[product] && product !== "") {
             parsedData[product] = [];
         }
-        parsedData[product].push({ image, price, time });
+        if (product !== "")
+            parsedData[product].push({ image, price, time });
     });
     fs_1.default.writeFileSync(filePath, JSON.stringify(parsedData, null, 2));
     console.log("Data appended to", filePath);
@@ -58,7 +63,8 @@ const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function
         yield page.waitForNavigation();
         let productFound = false;
         let listing;
-        while (!productFound) {
+        let pagesScraped = 0;
+        while (!productFound && pagesScraped < 10) {
             listing = yield page.evaluate((targetText) => {
                 const listingURLS = document.querySelectorAll("a");
                 return Array.from(listingURLS)
@@ -75,16 +81,21 @@ const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function
                 listing = listing[0];
                 break;
             }
-            const nextButton = yield page.$("a.s-pagination-next");
+            const nextButton = yield page.locator("a.s-pagination-next");
             if (!nextButton) {
                 console.log(`No more pages. Product not found: ${targetText}`);
                 break;
             }
+            pagesScraped += 1;
             yield nextButton.click();
-            yield page.waitForNavigation({ waitUntil: "load" });
         }
         if (!productFound) {
-            return null;
+            return {
+                product: targetText,
+                image: "",
+                price: "",
+                time: new Date().toJSON(),
+            };
         }
         yield page.goto("" + listing, { waitUntil: "load" });
         let listingImage = "", listingPrice = "";
@@ -105,6 +116,7 @@ const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function
         catch (error) {
             console.error("Error extracting the price for", targetText);
         }
+        console.log(targetText);
         return {
             product: targetText,
             image: listingImage,
@@ -114,14 +126,21 @@ const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function
     }
     catch (error) {
         console.log("Failed to scrape the data of ", targetText);
+        return {
+            product: "",
+            image: "",
+            price: "",
+            time: "",
+        };
     }
     finally {
         browser.close();
     }
 });
+const scrapeWithLimiter = limiter.wrap(scrapeProduct);
 /* <-------------------- Logic for concurrency -------------------->*/
 const scrapeAllProducts = (targets) => __awaiter(void 0, void 0, void 0, function* () {
-    const scrapedResults = yield Promise.all(targets.map(scrapeProduct));
+    const scrapedResults = yield Promise.all(targets.map(scrapeWithLimiter));
     writeToFile(scrapedResults);
 });
 /* <-------------------- Starts the scraping :) -------------------->*/
