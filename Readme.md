@@ -1,5 +1,5 @@
 # Web Scraper for Amazon Product Data  
-**Version: 2.0.0**
+**Version: 2.1.0**
 
 ---
 
@@ -174,3 +174,6 @@ This project is open-source and available under the MIT License.
 - Added support for pagination and dynamic ID handling.
 - Added concurrency for faster scraping.
 - Updated data structure to group results by product name and include timestamps.
+- **2.1.0**
+  - Added rate limiter.
+  - Fixed bugs.

@@ -1,10 +1,15 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
+import Bottleneck from "bottleneck";
+
+/* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
+const limiter = new Bottleneck({
+  maxConcurrent: 2,
+});
 
 /* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
 const targets: string[] = [
   "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unlocked (Renewed Premium)",
-  "2024 MacBook Pro Laptop with M4 Pro, 14‑core CPU, 20‑core GPU: Built for Apple Intelligence, 16.2-inch Liquid Retina XDR Display, 24GB Unified Memory, 512GB SSD Storage; Space Black",
   "Apple iPad Pro 2024 (13-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
   "Apple iPad Pro 2024 (11-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
 ];
@@ -31,10 +36,10 @@ const writeToFile = (allScrapedData: any) => {
       time: string;
     }) => {
       const { product, image, price, time } = scrapedProductData!;
-      if (!parsedData[product]) {
+      if (!parsedData[product] && product !== "") {
         parsedData[product] = [];
       }
-      parsedData[product].push({ image, price, time });
+      if(product !== "") parsedData[product].push({ image, price, time });
     }
   );
   fs.writeFileSync(filePath, JSON.stringify(parsedData, null, 2));
@@ -63,7 +68,8 @@ const scrapeProduct = async (targetText: string) => {
 
     let productFound: boolean = false;
     let listing: any;
-    while (!productFound) {
+    let pagesScraped = 0
+    while (!productFound && pagesScraped < 10) {
       listing = await page.evaluate((targetText) => {
         const listingURLS = document.querySelectorAll("a");
         return Array.from(listingURLS)
@@ -82,18 +88,22 @@ const scrapeProduct = async (targetText: string) => {
         break;
       }
 
-      const nextButton = await page.$("a.s-pagination-next");
+      const nextButton = await page.locator("a.s-pagination-next");
       if (!nextButton) {
         console.log(`No more pages. Product not found: ${targetText}`);
         break;
       }
-
+      pagesScraped+= 1;
       await nextButton.click();
-      await page.waitForNavigation({ waitUntil: "load" });
     }
 
     if (!productFound) {
-      return null;
+      return {
+        product: targetText,
+        image: "",
+        price: "",
+        time: new Date().toJSON(),
+      };
     }
 
     await page.goto("" + listing, { waitUntil: "load" });
@@ -128,7 +138,7 @@ const scrapeProduct = async (targetText: string) => {
     } catch (error) {
       console.error("Error extracting the price for", targetText);
     }
-
+    console.log(targetText);
     return {
       product: targetText,
       image: listingImage,
@@ -136,15 +146,23 @@ const scrapeProduct = async (targetText: string) => {
       time: new Date().toJSON(),
     };
   } catch (error) {
-    console.log("Failed to scrape the data of ", targetText)
+    console.log("Failed to scrape the data of ", targetText);
+    return {
+      product: "",
+      image: "",
+      price: "",
+      time: "",
+    };
   } finally {
     browser.close();
   }
 };
 
+const scrapeWithLimiter = limiter.wrap(scrapeProduct);
+
 /* <-------------------- Logic for concurrency -------------------->*/
 const scrapeAllProducts = async (targets: string[]) => {
-  const scrapedResults = await Promise.all(targets.map(scrapeProduct));
+  const scrapedResults = await Promise.all(targets.map(scrapeWithLimiter));
   writeToFile(scrapedResults);
 };
 
