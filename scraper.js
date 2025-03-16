@@ -12,6 +12,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.scrapeAllProducts = void 0;
 const puppeteer_1 = __importDefault(require("puppeteer"));
 const fs_1 = __importDefault(require("fs"));
 const bottleneck_1 = __importDefault(require("bottleneck"));
@@ -19,12 +20,6 @@ const bottleneck_1 = __importDefault(require("bottleneck"));
 const limiter = new bottleneck_1.default({
     maxConcurrent: 2,
 });
-/* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
-const targets = [
-    "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unlocked (Renewed Premium)",
-    "Apple iPad Pro 2024 (13-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
-    "Apple iPad Pro 2024 (11-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
-];
 /* <-------------------- Code for creating json file and saving scraped data -------------------->*/
 const filePath = "data.json";
 const initializeFile = () => {
@@ -116,7 +111,6 @@ const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function
         catch (error) {
             console.error("Error extracting the price for", targetText);
         }
-        console.log(targetText);
         return {
             product: targetText,
             image: listingImage,
@@ -140,9 +134,8 @@ const scrapeProduct = (targetText) => __awaiter(void 0, void 0, void 0, function
 const scrapeWithLimiter = limiter.wrap(scrapeProduct);
 /* <-------------------- Logic for concurrency -------------------->*/
 const scrapeAllProducts = (targets) => __awaiter(void 0, void 0, void 0, function* () {
+    initializeFile();
     const scrapedResults = yield Promise.all(targets.map(scrapeWithLimiter));
     writeToFile(scrapedResults);
 });
-/* <-------------------- Starts the scraping :) -------------------->*/
-initializeFile();
-scrapeAllProducts(targets);
+exports.scrapeAllProducts = scrapeAllProducts;
