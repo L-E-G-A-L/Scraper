@@ -1,18 +1,12 @@
 import puppeteer from "puppeteer";
 import fs from "fs";
 import Bottleneck from "bottleneck";
+import { targets } from "./targets";
 
 /* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
 const limiter = new Bottleneck({
   maxConcurrent: 2,
 });
-
-/* <-------------------- Full product names as listed on amazon that need to be scraped -------------------->*/
-const targets: string[] = [
-  "Apple iPhone 15 Pro Max, 256GB, Black Titanium - Unlocked (Renewed Premium)",
-  "Apple iPad Pro 2024 (13-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
-  "Apple iPad Pro 2024 (11-inch, Wi-Fi + Cellular, 256GB) - Space Black (Renewed)",
-];
 
 /* <-------------------- Code for creating json file and saving scraped data -------------------->*/
 const filePath = "data.json";
@@ -138,7 +132,7 @@ const scrapeProduct = async (targetText: string) => {
     } catch (error) {
       console.error("Error extracting the price for", targetText);
     }
-    console.log(targetText);
+
     return {
       product: targetText,
       image: listingImage,
@@ -161,11 +155,8 @@ const scrapeProduct = async (targetText: string) => {
 const scrapeWithLimiter = limiter.wrap(scrapeProduct);
 
 /* <-------------------- Logic for concurrency -------------------->*/
-const scrapeAllProducts = async (targets: string[]) => {
+export const scrapeAllProducts = async (targets: string[]) => {
+  initializeFile();
   const scrapedResults = await Promise.all(targets.map(scrapeWithLimiter));
   writeToFile(scrapedResults);
 };
-
-/* <-------------------- Starts the scraping :) -------------------->*/
-initializeFile();
-scrapeAllProducts(targets);

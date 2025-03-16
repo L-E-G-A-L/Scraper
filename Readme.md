@@ -1,10 +1,10 @@
 # Web Scraper for Amazon Product Data  
-**Version: 2.1.0**
+**Version: 2.2.0**
 
 ---
 
 ## Overview  
-This is a TypeScript-based web scraper built using **Puppeteer** to extract product details (image URL and price) from Amazon. The scraper searches for a specific product, navigates to its page, extracts the required data, and saves it to a JSON file (`data.json`). The data is stored with **product names as keys** and an array of objects containing `image`, `price`, and `time` for each scrape, allowing for historical tracking of product details.
+This is a TypeScript-based web scraper built using **Puppeteer** to extract product details (image URL and price) from Amazon. The scraper searches for a specific product, navigates to its page, extracts the required data, and saves it to a JSON file (`data.json`). The data is stored with **product names as keys** and an array of objects containing `image`, `price`, and `time` for each scrape, allowing for historical tracking of product details. The application is scheduled to run **once every hour** using **node-cron**.
 
 ---
 
@@ -16,6 +16,7 @@ This is a TypeScript-based web scraper built using **Puppeteer** to extract prod
 - **Pagination Handling**: Automatically navigates to the next page if the product is not found on the current page.  
 - **Concurrency**: Scrapes multiple products simultaneously using `Promise.all`.  
 - **Dynamic ID Handling**: Handles cases where element IDs (e.g., `main-image`, `landingImage`) vary.  
+- **Scheduling**: Automatically runs the scraper once every hour using `node-cron`.
 
 ---
 
@@ -24,6 +25,7 @@ Before running the script, ensure you have the following installed:
 - **Node.js** (v16 or higher)  
 - **Puppeteer** (`npm install puppeteer`)  
 - **user-agents** (`npm install user-agents`)  
+- **node-cron** (`npm install node-cron`)  
 
 ---
 
@@ -34,7 +36,7 @@ Before running the script, ensure you have the following installed:
    ```
 2. **Running the script**:
    ```bash
-   node scraper.js
+   node scheduler.js
    ```
 3. **Check the Output**:
     - The extracted data will be saved in `data.json` file in the root directory.
@@ -42,7 +44,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-### Code Structure
+## Code Structure
 
 1. Initialize data.json:
     - Checks if data.json exists. If not, creates it with an empty object.
@@ -57,10 +59,12 @@ Before running the script, ensure you have the following installed:
 3. Save Data:
     - Appends the extracted data to data.json with a timestamp.
     - Data is grouped by product name, and each entry includes image, price, and time.
+4. Scheduling:
+    - Uses node-cron to schedule the scraper to run once every hour.
 
 ---
 
-### Example Output (data.json)
+## Example Output (data.json)
 
 ```sh
 {
@@ -117,7 +121,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-### Error Handling
+## Error Handling
 
 - If the image or price cannot be extracted, an error message is logged to the console.
 - The script continues execution even if one of the fields fails to extract.
@@ -125,7 +129,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-### Customization
+## Customization
 
 - Change Target Product: 
 Modify the targetText variable to search for a different product.
@@ -143,9 +147,8 @@ const filePath = "your-file-name.json";
 
 ---
 
-### Limitations
+## Limitations
 
-- **Amazon Restrictions:** Amazon may block requests if too many are made in a short period. Use proxies or rate-limiting to avoid this.
 - **Dynamic Content:** The script assumes the product page structure remains consistent. If Amazon changes its layout, the selectors may need to be updated.
 - **Pagination:** The script handles pagination but may take longer to scrape all content if the product is on a later page.
 
@@ -162,18 +165,20 @@ This project is open-source and available under the MIT License.
 
 ---
 
-### Version History
+## Changelog
 
-**1.0.0**
-- Initial release with basic functionality for scraping product details and saving to JSON.
-- **1.2.0**
-  - Updated scraping logic.
-  - Added readme file.
-
-**2.0.0**
-- Added support for pagination and dynamic ID handling.
-- Added concurrency for faster scraping.
-- Updated data structure to group results by product name and include timestamps.
-- **2.1.0**
+### 2.2.0
+  - Added scheduling using node-cron to run the scraper once every hour.
+  - Updated file structure for better readability.
+### 2.1.0
   - Added rate limiter.
   - Fixed bugs.
+### 2.0.0**
+  - Added support for pagination and dynamic ID handling.
+  - Added concurrency for faster scraping.
+  - Updated data structure to group results by product name and include timestamps.
+### 1.2.0
+  - Updated scraping logic.
+  - Added readme file.
+### 1.0.0
+- Initial release with basic functionality for scraping product details and saving to JSON.
