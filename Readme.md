@@ -1,5 +1,21 @@
 # Web Scraper for Amazon Product Data  
-**Version: 2.2.0**
+![Static Badge](https://img.shields.io/badge/Version-2.2.0-blue)
+
+---
+
+### Contents
+- [Overview](#overview)
+- [Features](#features)
+- [Prerequisites](#prerequisites)
+- [How to Use](#how-to-use)
+- [Code Structure](#code-structure)
+- [Example Output](#example-output)
+- [Error Handling](#error-handling)
+- [Customization](#customization)
+- [Limitations](#limitations)
+- [License](#license)
+- [Author](#author)
+- [Changelog](#changelog)
 
 ---
 
@@ -64,7 +80,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-### Example Output (data.json)
+### Example Output
 
 ```sh
 {
