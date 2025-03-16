@@ -3,12 +3,12 @@
 
 ---
 
-## Overview  
+### Overview  
 This is a TypeScript-based web scraper built using **Puppeteer** to extract product details (image URL and price) from Amazon. The scraper searches for a specific product, navigates to its page, extracts the required data, and saves it to a JSON file (`data.json`). The data is stored with **product names as keys** and an array of objects containing `image`, `price`, and `time` for each scrape, allowing for historical tracking of product details. The application is scheduled to run **once every hour** using **node-cron**.
 
 ---
 
-## Features  
+### Features  
 - **Search for a Specific Product**: The scraper searches for predefined products on Amazon.  
 - **Extract Product Details**: Extracts the product image URL and price.  
 - **Save Data to JSON**: Stores the extracted data in a JSON file with a timestamp.  
@@ -20,7 +20,7 @@ This is a TypeScript-based web scraper built using **Puppeteer** to extract prod
 
 ---
 
-## Prerequisites  
+### Prerequisites  
 Before running the script, ensure you have the following installed:  
 - **Node.js** (v16 or higher)  
 - **Puppeteer** (`npm install puppeteer`)  
@@ -29,7 +29,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-## How to Use  
+### How to Use  
 1. **Install the dependencies**:  
    ```bash
    npm install
@@ -44,7 +44,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-## Code Structure
+### Code Structure
 
 1. Initialize data.json:
     - Checks if data.json exists. If not, creates it with an empty object.
@@ -64,7 +64,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-## Example Output (data.json)
+### Example Output (data.json)
 
 ```sh
 {
@@ -121,7 +121,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-## Error Handling
+### Error Handling
 
 - If the image or price cannot be extracted, an error message is logged to the console.
 - The script continues execution even if one of the fields fails to extract.
@@ -129,7 +129,7 @@ Before running the script, ensure you have the following installed:
 
 ---
 
-## Customization
+### Customization
 
 - Change Target Product: 
 Modify the targetText variable to search for a different product.
@@ -147,7 +147,7 @@ const filePath = "your-file-name.json";
 
 ---
 
-## Limitations
+### Limitations
 
 - **Dynamic Content:** The script assumes the product page structure remains consistent. If Amazon changes its layout, the selectors may need to be updated.
 - **Pagination:** The script handles pagination but may take longer to scrape all content if the product is on a later page.
@@ -165,7 +165,7 @@ This project is open-source and available under the MIT License.
 
 ---
 
-## Changelog
+### Changelog
 
 ### 2.2.0
   - Added scheduling using node-cron to run the scraper once every hour.
